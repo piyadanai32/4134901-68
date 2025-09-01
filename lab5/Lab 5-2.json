@@ -61,8 +61,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        960,
-        576
+        976,
+        560
       ],
       "id": "433eb39f-9f46-412c-9910-833cac65a85b",
       "name": "OpenRouter Chat Model",
@@ -122,7 +122,7 @@
       "type": "n8n-nodes-base.googleDocs",
       "typeVersion": 2,
       "position": [
-        1648,
+        1856,
         384
       ],
       "id": "43baeb0c-c251-48fc-b4a6-d5e7a0aa5e59",
@@ -131,6 +131,53 @@
         "googleDocsOAuth2Api": {
           "id": "6zqTp5iwMISDzMFr",
           "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        448,
+        384
+      ],
+      "id": "7b03430a-0c80-4858-aef7-c90993b450c8",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1tOvnbKfMj9lAHmwRYNSgCVv_LFp23qDY",
+          "mode": "list",
+          "cachedResultName": "daily report",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1tOvnbKfMj9lAHmwRYNSgCVv_LFp23qDY"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1664,
+        384
+      ],
+      "id": "c5cfec04-eac0-430e-9a8c-7c659e93b908",
+      "name": "Move file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "ILkWaMMhVd3gTmUd",
+          "name": "Google Drive account"
         }
       }
     }
@@ -196,6 +243,28 @@
       "main": [
         [
           {
+            "node": "Move file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get Sales Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move file": {
+      "main": [
+        [
+          {
             "node": "Data Report",
             "type": "main",
             "index": 0
@@ -208,8 +277,9 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "59ffc934-15f3-4e39-b127-f8823a793cc1",
+  "versionId": "711d7024-49a1-47fe-981c-6f66674aa33c",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "b88cc5fd85709ffe33d9b31950741e30a799267a90a4d7be0cc43021d42c8434"
   },
   "id": "qCLoV9fDA0pg0lmy",

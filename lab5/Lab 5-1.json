@@ -168,13 +168,13 @@
     },
     {
       "parameters": {
-        "folderId": "1dStGqj5fra49t6sRUapV6CegtDQuBjxo",
+        "folderId": "1aVtMw7fAI06KHWvlmh-jxoy-42dpGyjT",
         "title": "={{ $('Process AI Response').item.json.file_name }}"
       },
       "type": "n8n-nodes-base.googleDocs",
       "typeVersion": 2,
       "position": [
-        1120,
+        1152,
         208
       ],
       "id": "5ba1ac8e-963c-4c79-a0ea-0c30680d2745",
@@ -202,7 +202,7 @@
       "type": "n8n-nodes-base.googleDocs",
       "typeVersion": 2,
       "position": [
-        1296,
+        1504,
         208
       ],
       "id": "e4f8d116-0bad-4bae-a849-eba903add1ea",
@@ -211,6 +211,42 @@
         "googleDocsOAuth2Api": {
           "id": "6zqTp5iwMISDzMFr",
           "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1dStGqj5fra49t6sRUapV6CegtDQuBjxo",
+          "mode": "list",
+          "cachedResultName": "reviewed",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1dStGqj5fra49t6sRUapV6CegtDQuBjxo"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1328,
+        208
+      ],
+      "id": "9740b86a-e918-46ef-b03b-7bfaecdbea41",
+      "name": "Move file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "ILkWaMMhVd3gTmUd",
+          "name": "Google Drive account"
         }
       }
     }
@@ -325,6 +361,17 @@
       "main": [
         [
           {
+            "node": "Move file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move file": {
+      "main": [
+        [
+          {
             "node": "Update a document",
             "type": "main",
             "index": 0
@@ -337,8 +384,9 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "10065d53-b836-4b98-a55b-7eebcc0544d4",
+  "versionId": "6489ca2b-8ae4-4dd8-864a-9176a7ff3100",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "b88cc5fd85709ffe33d9b31950741e30a799267a90a4d7be0cc43021d42c8434"
   },
   "id": "uXpF2dO6PRTY8wj4",
