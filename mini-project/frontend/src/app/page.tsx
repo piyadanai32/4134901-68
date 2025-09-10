@@ -3,15 +3,6 @@
 import { useState, useEffect } from 'react';
 import { VehicleCountResponse, CameraData, VehicleDetail } from './lib/vehicleCount';
 
-interface SummaryData {
-  totalCarsIn: number;
-  totalCarsOut: number;
-  totalMotorcyclesIn: number;
-  totalMotorcyclesOut: number;
-  totalBusesIn: number;
-  totalBusesOut: number;
-  totalVehicles: number;
-}
 
 export default function VehicleDashboard() {
   const today = new Date().toISOString().slice(0, 10);
@@ -67,61 +58,19 @@ export default function VehicleDashboard() {
     fetchData();
   }, []);
 
-  const calculateSummary = (): SummaryData => {
-    const summary: SummaryData = {
-      totalCarsIn: 0,
-      totalCarsOut: 0,
-      totalMotorcyclesIn: 0,
-      totalMotorcyclesOut: 0,
-      totalBusesIn: 0,
-      totalBusesOut: 0,
-      totalVehicles: 0,
-    };
 
-    data.forEach((camera) => {
-      camera.details.forEach((detail) => {
-        const count = detail.count;
-        
-        if (detail.vehicle_type_name === 'car') {
-          if (detail.direction_type_name === 'in') {
-            summary.totalCarsIn += count;
-          } else {
-            summary.totalCarsOut += count;
-          }
-        } else if (detail.vehicle_type_name === 'motorcycle') {
-          if (detail.direction_type_name === 'in') {
-            summary.totalMotorcyclesIn += count;
-          } else {
-            summary.totalMotorcyclesOut += count;
-          }
-        } else if (detail.vehicle_type_name === 'bus') {
-          if (detail.direction_type_name === 'in') {
-            summary.totalBusesIn += count;
-          } else {
-            summary.totalBusesOut += count;
-          }
-        }
-      });
-    });
-
-    summary.totalVehicles = summary.totalCarsIn + summary.totalCarsOut + 
-                           summary.totalMotorcyclesIn + summary.totalMotorcyclesOut +
-                           summary.totalBusesIn + summary.totalBusesOut;
-
-    return summary;
-  };
 
   const getCameraVehicleCount = (cameraId: number, vehicleType: string, direction: string): number => {
     const camera = data.find(c => c.camera_id === cameraId);
     if (!camera) return 0;
-    
-    const detail = camera.details.find(d => 
+
+    const detail = camera.details.find(d =>
       d.vehicle_type_name === vehicleType && d.direction_type_name === direction
     );
     return detail?.count || 0;
   };
 
-  const summary = calculateSummary();
+  // const summary = calculateSummary();
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -131,7 +80,7 @@ export default function VehicleDashboard() {
           <h1 className="text-3xl font-bold text-gray-800 mb-6">
             Dashboard การนับจำนวนยานพาหนะ
           </h1>
-          
+
           {/* Date Input */}
           <div className="flex flex-wrap gap-4 items-end">
             <div>
@@ -176,101 +125,101 @@ export default function VehicleDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-blue-600 text-white rounded-lg p-6 shadow-md">
             <h3 className="text-lg font-semibold mb-2">รถยนต์เข้า</h3>
-            <p className="text-3xl font-bold">{summary.totalCarsIn}</p>
+            <p className="text-3xl font-bold">
+              {data.reduce((sum, camera) => 
+                sum + (camera.details.find(d => d.vehicle_type_name === 'car' && d.direction_type_name === 'in')?.count || 0), 0)}
+            </p>
           </div>
           <div className="bg-green-600 text-white rounded-lg p-6 shadow-md">
             <h3 className="text-lg font-semibold mb-2">รถยนต์ออก</h3>
-            <p className="text-3xl font-bold">{summary.totalCarsOut}</p>
+            <p className="text-3xl font-bold">
+              {data.reduce((sum, camera) => 
+                sum + (camera.details.find(d => d.vehicle_type_name === 'car' && d.direction_type_name === 'out')?.count || 0), 0)}
+            </p>
           </div>
           <div className="bg-purple-600 text-white rounded-lg p-6 shadow-md">
             <h3 className="text-lg font-semibold mb-2">รถจักรยานยนต์</h3>
-            <p className="text-3xl font-bold">{summary.totalMotorcyclesIn + summary.totalMotorcyclesOut}</p>
+            <p className="text-3xl font-bold">
+              {data.reduce((sum, camera) => 
+                sum + (camera.details.find(d => d.vehicle_type_name === 'motorcycle' && d.direction_type_name === 'in')?.count || 0) +
+                      (camera.details.find(d => d.vehicle_type_name === 'motorcycle' && d.direction_type_name === 'out')?.count || 0), 0)}
+            </p>
           </div>
           <div className="bg-orange-600 text-white rounded-lg p-6 shadow-md">
             <h3 className="text-lg font-semibold mb-2">รถบัส</h3>
-            <p className="text-3xl font-bold">{summary.totalBusesIn + summary.totalBusesOut}</p>
+            <p className="text-3xl font-bold">
+              {data.reduce((sum, camera) => 
+                sum + (camera.details.find(d => d.vehicle_type_name === 'bus' && d.direction_type_name === 'in')?.count || 0) +
+                      (camera.details.find(d => d.vehicle_type_name === 'bus' && d.direction_type_name === 'out')?.count || 0), 0)}
+            </p>
           </div>
         </div>
 
-{/* Camera Grid Layout */}
-<div className="bg-white rounded-lg shadow-md p-6">
-  <h2 className="text-2xl font-bold text-gray-800 mb-6">แสดงผลยานพาหนะเข้า - ออก ของแต่ละประตู</h2>
-  
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    {[1, 2, 3, 4].map(gateId => {
-      // กรองข้อมูลกล้องที่อยู่ในประตูนี้
-      const gateCameras = data.filter(camera => camera.gate_id === gateId);
+        {/* Camera Grid Layout */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">แสดงผลยานพาหนะเข้า - ออก ของแต่ละประตู</h2>
 
-      return (
-        <div key={gateId} className="border border-gray-200 rounded-lg p-4">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-            <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-            ประตู {gateId}
-          </h3>
-          
-          {gateCameras.length > 0 ? (
-            <div className="space-y-3">
-              {gateCameras.map(camera => (
-                <div key={camera.camera_id} className="bg-gray-50 rounded-md p-3">
-                  <h4 className="font-medium text-gray-700 mb-2">
-                    กล้อง {camera.camera_id}
-                  </h4>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {/* รถยนต์ */}
-                    <div className="bg-blue-100 p-2 rounded">
-                      <div className="font-medium text-blue-800">รถยนต์</div>
-                      <div className="text-blue-600">
-                        เข้า: {getCameraVehicleCount(camera.camera_id, 'car', 'in')} | 
-                        ออก: {getCameraVehicleCount(camera.camera_id, 'car', 'out')}
-                      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map(gateId => {
+              // กรองข้อมูลกล้องที่อยู่ในประตูนี้
+              const gateCameras = data.filter(camera => camera.gate_id === gateId);
+
+              return (
+                <div key={gateId} className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                    ประตู {gateId}
+                  </h3>
+
+                  {gateCameras.length > 0 ? (
+                    <div className="space-y-3">
+                      {gateCameras.map(camera => (
+                        <div key={camera.camera_id} className="bg-gray-50 rounded-md p-3">
+                          <h4 className="font-medium text-gray-700 mb-2">
+                            กล้อง {camera.camera_id}
+                          </h4>
+
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            {/* รถยนต์ */}
+                            <div className="bg-blue-100 p-2 rounded">
+                              <div className="font-medium text-blue-800">รถยนต์</div>
+                              <div className="text-blue-600">
+                                เข้า: {getCameraVehicleCount(camera.camera_id, 'car', 'in')} |
+                                ออก: {getCameraVehicleCount(camera.camera_id, 'car', 'out')}
+                              </div>
+                            </div>
+
+                            {/* จักรยานยนต์ */}
+                            <div className="bg-green-100 p-2 rounded">
+                              <div className="font-medium text-green-800">จักรยานยนต์</div>
+                              <div className="text-green-600">
+                                เข้า: {getCameraVehicleCount(camera.camera_id, 'motorcycle', 'in')} |
+                                ออก: {getCameraVehicleCount(camera.camera_id, 'motorcycle', 'out')}
+                              </div>
+                            </div>
+
+                            {/* รถบัส */}
+                            <div className="bg-purple-100 p-2 rounded col-span-2">
+                              <div className="font-medium text-purple-800">รถบัส</div>
+                              <div className="text-purple-600">
+                                เข้า: {getCameraVehicleCount(camera.camera_id, 'bus', 'in')} |
+                                ออก: {getCameraVehicleCount(camera.camera_id, 'bus', 'out')}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    
-                    {/* จักรยานยนต์ */}
-                    <div className="bg-green-100 p-2 rounded">
-                      <div className="font-medium text-green-800">จักรยานยนต์</div>
-                      <div className="text-green-600">
-                        เข้า: {getCameraVehicleCount(camera.camera_id, 'motorcycle', 'in')} | 
-                        ออก: {getCameraVehicleCount(camera.camera_id, 'motorcycle', 'out')}
-                      </div>
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      ไม่มีข้อมูลกล้องในประตูนี้
                     </div>
-                    
-                    {/* รถบัส */}
-                    <div className="bg-purple-100 p-2 rounded col-span-2">
-                      <div className="font-medium text-purple-800">รถบัส</div>
-                      <div className="text-purple-600">
-                        เข้า: {getCameraVehicleCount(camera.camera_id, 'bus', 'in')} | 
-                        ออก: {getCameraVehicleCount(camera.camera_id, 'bus', 'out')}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* รวมทั้งหมดของกล้องนี้ */}
-                  <div className="mt-2 pt-2 border-t border-gray-200">
-                    <div className="text-sm font-medium text-gray-700">
-                      รวมทั้งหมด: {
-                        getCameraVehicleCount(camera.camera_id, 'car', 'in') +
-                        getCameraVehicleCount(camera.camera_id, 'car', 'out') +
-                        getCameraVehicleCount(camera.camera_id, 'motorcycle', 'in') +
-                        getCameraVehicleCount(camera.camera_id, 'motorcycle', 'out') +
-                        getCameraVehicleCount(camera.camera_id, 'bus', 'in') +
-                        getCameraVehicleCount(camera.camera_id, 'bus', 'out')
-                      } คัน
-                    </div>
-                  </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-4 text-gray-500">
-              ไม่มีข้อมูลกล้องในประตูนี้
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
-      );
-    })}
-  </div>
-</div>
 
         {/* Data Table */}
         <div className="bg-white rounded-lg shadow-md p-6 mt-8">
@@ -304,8 +253,8 @@ export default function VehicleDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {detail.vehicle_type_name === 'car' ? 'รถยนต์' :
-                           detail.vehicle_type_name === 'motorcycle' ? 'จักรยานยนต์' :
-                           detail.vehicle_type_name === 'bus' ? 'รถบัส' : detail.vehicle_type_name}
+                            detail.vehicle_type_name === 'motorcycle' ? 'จักรยานยนต์' :
+                              detail.vehicle_type_name === 'bus' ? 'รถบัส' : detail.vehicle_type_name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {detail.direction_type_name === 'in' ? 'เข้า' : 'ออก'}
