@@ -1,266 +1,326 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
-import Flatpickr from "react-flatpickr";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { Bar } from "react-chartjs-2";
-import React from "react";
+import { useState, useEffect } from 'react';
+import { VehicleCountResponse, CameraData, VehicleDetail } from './lib/vehicleCount';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
-interface VehicleDetail {
-  vehicle_type_name: string;
-  direction_type_name: string;
-  count: number;
+interface SummaryData {
+  totalCarsIn: number;
+  totalCarsOut: number;
+  totalMotorcyclesIn: number;
+  totalMotorcyclesOut: number;
+  totalBusesIn: number;
+  totalBusesOut: number;
+  totalVehicles: number;
 }
 
-interface VehicleData {
-  camera_id: string;
-  details: VehicleDetail[];
-}
+export default function VehicleDashboard() {
+  const today = new Date().toISOString().slice(0, 10);
+  const [startDate, setStartDate] = useState<string>(today);
+  const [endDate, setEndDate] = useState<string>(today);
+  const [data, setData] = useState<CameraData[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
-export default function Home() {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<VehicleData[]>([]);
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  const [type, setType] = useState("gate");
-  const [id, setId] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
+  const fetchGateData = async (gateId: number) => {
     try {
       const response = await fetch(
-        `http://localhost:5678/webhook/vehicle_count/all?type=${type}&id=${id}&start=${startDate.toISOString().split("T")[0]}&stop=${endDate.toISOString().split("T")[0]}`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-        }
+        `http://localhost:5678/webhook/vehicle_count/all?type=gate&id=${gateId}&start=${startDate}&stop=${endDate}`
       );
-
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Failed to fetch data for gate ${gateId}`);
       }
-
       const text = await response.text();
       if (!text) {
-        throw new Error("ไม่มีข้อมูลจากเซิร์ฟเวอร์");
+        return [];
       }
+      const result: VehicleCountResponse[] = JSON.parse(text);
+      return result[0]?.data || [];
+    } catch (error) {
+      console.error(`Error fetching gate ${gateId}:`, error);
+      return [];
+    }
+  };
 
-      const responseData = JSON.parse(text);
-      if (!responseData || !Array.isArray(responseData) || !responseData[0]?.data) {
-        throw new Error("รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง");
-      }
+  const fetchData = async () => {
+    if (!startDate || !endDate) {
+      setError('กรุณาเลือกวันที่');
+      return;
+    }
 
-      setData(responseData[0].data);
-    } catch (error: any) {
-      console.error("Error:", error);
-      alert(error.message);
-      setData([]);
+    setLoading(true);
+    setError('');
+
+    try {
+      const gates = [1, 2, 3, 4];
+      const allData = await Promise.all(gates.map(fetchGateData));
+      const combinedData = allData.flat();
+      setData(combinedData);
+    } catch (err) {
+      setError('เกิดข้อผิดพลาดในการดึงข้อมูล');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const chartData = React.useMemo(() => {
-    if (!data.length) return null;
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-    const vehicleTypes = [...new Set(data.flatMap(item =>
-      item.details.map(detail => detail.vehicle_type_name)
-    ))];
-
-    const directions = [...new Set(data.flatMap(item =>
-      item.details.map(detail => detail.direction_type_name)
-    ))];
-
-    const colors = [
-      "rgba(75, 192, 192, 0.6)",
-      "rgba(255, 99, 132, 0.6)",
-      "rgba(54, 162, 235, 0.6)",
-    ];
-
-    return {
-      labels: vehicleTypes,
-      datasets: directions.map((direction, index) => ({
-        label: direction,
-        data: vehicleTypes.map(type => {
-          const count = data.reduce((sum, item) => {
-            const detail = item.details.find(d =>
-              d.vehicle_type_name === type &&
-              d.direction_type_name === direction
-            );
-            return sum + (detail ? detail.count : 0);
-          }, 0);
-          return count;
-        }),
-        backgroundColor: colors[index % colors.length],
-        borderColor: colors[index % colors.length].replace("0.6", "1"),
-        borderWidth: 1,
-      })),
+  const calculateSummary = (): SummaryData => {
+    const summary: SummaryData = {
+      totalCarsIn: 0,
+      totalCarsOut: 0,
+      totalMotorcyclesIn: 0,
+      totalMotorcyclesOut: 0,
+      totalBusesIn: 0,
+      totalBusesOut: 0,
+      totalVehicles: 0,
     };
-  }, [data]);
+
+    data.forEach((camera) => {
+      camera.details.forEach((detail) => {
+        const count = detail.count;
+        
+        if (detail.vehicle_type_name === 'car') {
+          if (detail.direction_type_name === 'in') {
+            summary.totalCarsIn += count;
+          } else {
+            summary.totalCarsOut += count;
+          }
+        } else if (detail.vehicle_type_name === 'motorcycle') {
+          if (detail.direction_type_name === 'in') {
+            summary.totalMotorcyclesIn += count;
+          } else {
+            summary.totalMotorcyclesOut += count;
+          }
+        } else if (detail.vehicle_type_name === 'bus') {
+          if (detail.direction_type_name === 'in') {
+            summary.totalBusesIn += count;
+          } else {
+            summary.totalBusesOut += count;
+          }
+        }
+      });
+    });
+
+    summary.totalVehicles = summary.totalCarsIn + summary.totalCarsOut + 
+                           summary.totalMotorcyclesIn + summary.totalMotorcyclesOut +
+                           summary.totalBusesIn + summary.totalBusesOut;
+
+    return summary;
+  };
+
+  const getCameraVehicleCount = (cameraId: number, vehicleType: string, direction: string): number => {
+    const camera = data.find(c => c.camera_id === cameraId);
+    if (!camera) return 0;
+    
+    const detail = camera.details.find(d => 
+      d.vehicle_type_name === vehicleType && d.direction_type_name === direction
+    );
+    return detail?.count || 0;
+  };
+
+  const summary = calculateSummary();
 
   return (
-    <div className="bg-light">
-      {loading && (
-        <div className="loading active">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">กำลังโหลด...</span>
-          </div>
-        </div>
-      )}
-
-      <div className="container py-5">
-        <h1 className="text-center mb-4">ระบบนับจำนวนยานพาหนะ</h1>
-
-        <div className="card mb-4">
-          <div className="card-body">
-            <form onSubmit={handleSubmit}>
-              <div className="row g-3">
-                <div className="col-md-3">
-                  <label className="form-label">ประเภท</label>
-                  <select
-                    className="form-select"
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    required
-                  >
-                    <option value="gate">ประตู</option>
-                    <option value="camera">กล้อง</option>
-                  </select>
-                </div>
-                <div className="col-md-3">
-                  <label className="form-label">รหัส</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    value={id}
-                    onChange={(e) => setId(e.target.value)}
-                    required
-                    min="1"
-                  />
-                </div>
-                <div className="col-md-3">
-                  <label className="form-label">วันที่เริ่มต้น</label>
-                  <Flatpickr
-                    className="form-control"
-                    value={startDate}
-                    onChange={([date]) => setStartDate(date)}
-                    options={{
-                      dateFormat: "Y-m-d",
-                    }}
-                  />
-                </div>
-                <div className="col-md-3">
-                  <label className="form-label">วันที่สิ้นสุด</label>
-                  <Flatpickr
-                    className="form-control"
-                    value={endDate}
-                    onChange={([date]) => setEndDate(date)}
-                    options={{
-                      dateFormat: "Y-m-d",
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="text-center mt-3">
-                <button type="submit" className="btn btn-primary px-4">
-                  ค้นหา
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-body">
-            <h3 className="card-title mb-4">ผลการค้นหา</h3>
-            <div className="table-responsive mb-4">
-              <table className="table table-striped table-hover">
-                <thead>
-                  <tr>
-                    <th>รหัสกล้อง</th>
-                    <th>ประเภทยานพาหนะ</th>
-                    <th>ทิศทาง</th>
-                    <th>จำนวน</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="text-center">
-                        ไม่พบข้อมูล
-                      </td>
-                    </tr>
-                  ) : (
-                    data.flatMap((item) =>
-                      item.details.map((detail, index) => (
-                        <tr key={`${item.camera_id}-${index}`}>
-                          <td>{item.camera_id || "ไม่ระบุ"}</td>
-                          <td>{detail.vehicle_type_name || "ไม่ระบุ"}</td>
-                          <td>{detail.direction_type_name || "ไม่ระบุ"}</td>
-                          <td>{detail.count || 0}</td>
-                        </tr>
-                      ))
-                    )
-                  )}
-                </tbody>
-              </table>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h1 className="text-3xl font-bold text-gray-800 mb-6">
+            Dashboard การนับจำนวนยานพาหนะ
+          </h1>
+          
+          {/* Date Input */}
+          <div className="flex flex-wrap gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                วันที่เริ่มต้น
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-            {chartData && (
-              <div className="mt-4">
-                <h4>แผนภูมิแสดงจำนวนยานพาหนะ</h4>
-                <Bar
-                  data={chartData}
-                  options={{
-                    responsive: true,
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        title: {
-                          display: true,
-                          text: "จำนวน",
-                        },
-                      },
-                      x: {
-                        title: {
-                          display: true,
-                          text: "ประเภทยานพาหนะ",
-                        },
-                      },
-                    },
-                    plugins: {
-                      title: {
-                        display: true,
-                        text: "จำนวนยานพาหนะแยกตามประเภทและทิศทาง",
-                      },
-                      legend: {
-                        position: "top",
-                      },
-                    },
-                  }}
-                />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                วันที่สิ้นสุด
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              onClick={fetchData}
+              disabled={loading}
+              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'กำลังโหลด...' : 'ค้นหา'}
+            </button>
+          </div>
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-blue-600 text-white rounded-lg p-6 shadow-md">
+            <h3 className="text-lg font-semibold mb-2">รถยนต์เข้า</h3>
+            <p className="text-3xl font-bold">{summary.totalCarsIn}</p>
+          </div>
+          <div className="bg-green-600 text-white rounded-lg p-6 shadow-md">
+            <h3 className="text-lg font-semibold mb-2">รถยนต์ออก</h3>
+            <p className="text-3xl font-bold">{summary.totalCarsOut}</p>
+          </div>
+          <div className="bg-purple-600 text-white rounded-lg p-6 shadow-md">
+            <h3 className="text-lg font-semibold mb-2">รถจักรยานยนต์</h3>
+            <p className="text-3xl font-bold">{summary.totalMotorcyclesIn + summary.totalMotorcyclesOut}</p>
+          </div>
+          <div className="bg-orange-600 text-white rounded-lg p-6 shadow-md">
+            <h3 className="text-lg font-semibold mb-2">รถบัส</h3>
+            <p className="text-3xl font-bold">{summary.totalBusesIn + summary.totalBusesOut}</p>
+          </div>
+        </div>
+
+{/* Camera Grid Layout */}
+<div className="bg-white rounded-lg shadow-md p-6">
+  <h2 className="text-2xl font-bold text-gray-800 mb-6">แสดงผลยานพาหนะเข้า - ออก ของแต่ละประตู</h2>
+  
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {[1, 2, 3, 4].map(gateId => {
+      // กรองข้อมูลกล้องที่อยู่ในประตูนี้
+      const gateCameras = data.filter(camera => camera.gate_id === gateId);
+
+      return (
+        <div key={gateId} className="border border-gray-200 rounded-lg p-4">
+          <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+            <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+            ประตู {gateId}
+          </h3>
+          
+          {gateCameras.length > 0 ? (
+            <div className="space-y-3">
+              {gateCameras.map(camera => (
+                <div key={camera.camera_id} className="bg-gray-50 rounded-md p-3">
+                  <h4 className="font-medium text-gray-700 mb-2">
+                    กล้อง {camera.camera_id}
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {/* รถยนต์ */}
+                    <div className="bg-blue-100 p-2 rounded">
+                      <div className="font-medium text-blue-800">รถยนต์</div>
+                      <div className="text-blue-600">
+                        เข้า: {getCameraVehicleCount(camera.camera_id, 'car', 'in')} | 
+                        ออก: {getCameraVehicleCount(camera.camera_id, 'car', 'out')}
+                      </div>
+                    </div>
+                    
+                    {/* จักรยานยนต์ */}
+                    <div className="bg-green-100 p-2 rounded">
+                      <div className="font-medium text-green-800">จักรยานยนต์</div>
+                      <div className="text-green-600">
+                        เข้า: {getCameraVehicleCount(camera.camera_id, 'motorcycle', 'in')} | 
+                        ออก: {getCameraVehicleCount(camera.camera_id, 'motorcycle', 'out')}
+                      </div>
+                    </div>
+                    
+                    {/* รถบัส */}
+                    <div className="bg-purple-100 p-2 rounded col-span-2">
+                      <div className="font-medium text-purple-800">รถบัส</div>
+                      <div className="text-purple-600">
+                        เข้า: {getCameraVehicleCount(camera.camera_id, 'bus', 'in')} | 
+                        ออก: {getCameraVehicleCount(camera.camera_id, 'bus', 'out')}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* รวมทั้งหมดของกล้องนี้ */}
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <div className="text-sm font-medium text-gray-700">
+                      รวมทั้งหมด: {
+                        getCameraVehicleCount(camera.camera_id, 'car', 'in') +
+                        getCameraVehicleCount(camera.camera_id, 'car', 'out') +
+                        getCameraVehicleCount(camera.camera_id, 'motorcycle', 'in') +
+                        getCameraVehicleCount(camera.camera_id, 'motorcycle', 'out') +
+                        getCameraVehicleCount(camera.camera_id, 'bus', 'in') +
+                        getCameraVehicleCount(camera.camera_id, 'bus', 'out')
+                      } คัน
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              ไม่มีข้อมูลกล้องในประตูนี้
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+</div>
+
+        {/* Data Table */}
+        <div className="bg-white rounded-lg shadow-md p-6 mt-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">ตารางข้อมูลยานพาหนะเข้า - ออกทั้งหมด</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-auto">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    กล้อง
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ประเภทยานพาหนะ
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ทิศทาง
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    จำนวน
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {data.map((camera) =>
+                  camera.details
+                    .filter(detail => detail.count > 0) // Show only non-zero counts
+                    .map((detail, index) => (
+                      <tr key={`${camera.camera_id}-${detail.vehicle_type_id}-${detail.direction_type_id}`}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          Camera {camera.camera_id}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {detail.vehicle_type_name === 'car' ? 'รถยนต์' :
+                           detail.vehicle_type_name === 'motorcycle' ? 'จักรยานยนต์' :
+                           detail.vehicle_type_name === 'bus' ? 'รถบัส' : detail.vehicle_type_name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {detail.direction_type_name === 'in' ? 'เข้า' : 'ออก'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                          {detail.count}
+                        </td>
+                      </tr>
+                    ))
+                )}
+              </tbody>
+            </table>
+            {data.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                ไม่มีข้อมูล
               </div>
             )}
           </div>

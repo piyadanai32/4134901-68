@@ -56,4 +56,4 @@ INSERT INTO VehicleType (name) VALUES ('car'), ('motorcycle'), ('bus');
 INSERT INTO DirectionType (name) VALUES ('in'), ('out');
 INSERT INTO Gate (name) VALUES ('Gate 1'), ('Gate 2'), ('Gate 3'),('Gate 4');
 INSERT INTO EdgeDevice (name, location, token) VALUES ('CCTV-Edge-01', 'BRU', 'dajsdkasjdsuad2348werwerewfjslfj8w424');
-INSERT INTO Camera (name, gate_id) VALUES ('Camera-01', 1), ('Camera-02', 1), ('Camera-03', 2);
+INSERT INTO Camera (name, gate_id) VALUES ('Camera-4-01', 4), ('Camera-4-02', 4), ('Camera-4-03', 4);
