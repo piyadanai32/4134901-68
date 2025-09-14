@@ -175,7 +175,10 @@ export default function VehicleDashboard() {
                     <div className="space-y-3">
                       {gateCameras.map(camera => (
                         <div key={camera.camera_id} className="bg-gray-50 rounded-md p-3">
-                          <h4 className="font-medium text-gray-700 mb-2">
+                          <h4 
+                            onClick={() => window.location.href = `/report?cameraId=${camera.camera_id}&start=${startDate}&stop=${endDate}`}
+                            className="font-medium text-gray-700 mb-2 cursor-pointer hover:text-blue-600"
+                          >
                             กล้อง {camera.camera_id}
                           </h4>
 
