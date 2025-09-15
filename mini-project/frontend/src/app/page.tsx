@@ -5,7 +5,6 @@ import {
   VehicleCountResponse,
   CameraData,
 } from "./lib/vehicleCount";
-// Add chart imports
 import {
   Chart as ChartJS,
   CategoryScale,

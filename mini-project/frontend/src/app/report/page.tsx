@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { VehicleCountResponse } from '../lib/vehicleCount';
 
 export default function CameraReport() {
   const searchParams = useSearchParams();
