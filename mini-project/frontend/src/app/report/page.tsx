@@ -2,6 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export default function CameraReport() {
   const searchParams = useSearchParams();
@@ -71,6 +90,107 @@ export default function CameraReport() {
       </div>
     );
   }
+
+  const chartData = {
+    labels: ['รถยนต์', 'จักรยานยนต์', 'รถบัส'],
+    datasets: [
+      {
+        label: 'เข้า',
+        data: ['car', 'motorcycle', 'bus'].map(type => 
+          data.details.find((d: any) => d.vehicle_type_name === type && d.direction_type_name === 'in')?.count || 0
+        ),
+        backgroundColor: "rgba(59, 130, 246, 0.85)", // blue-500
+        borderRadius: 50,
+        borderSkipped: false,
+        barPercentage: 0.7,
+        categoryPercentage: 0.7,
+      },
+      {
+        label: 'ออก',
+        data: ['car', 'motorcycle', 'bus'].map(type => 
+          data.details.find((d: any) => d.vehicle_type_name === type && d.direction_type_name === 'out')?.count || 0
+        ),
+        backgroundColor: "rgba(236, 72, 153, 0.85)", // pink-500
+        borderRadius: 50,
+        borderSkipped: false,
+        barPercentage: 0.7,
+        categoryPercentage: 0.7,
+      }
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom" as const,
+        labels: {
+          font: { size: 18, family: "Prompt, sans-serif" },
+          color: "#22223b",
+          boxWidth: 28,
+          boxHeight: 18,
+          padding: 20,
+        },
+      },
+      title: {
+        display: true,
+        text: "สถิติจำนวนยานพาหนะเข้าออกแต่ละประเภท",
+        font: { size: 24, family: "Prompt, sans-serif", weight: "bold" as "bold" },
+        color: "#22223b",
+        padding: { top: 10, bottom: 10 },
+      },
+      tooltip: {
+        backgroundColor: "#fff",
+        titleColor: "#22223b",
+        bodyColor: "#22223b",
+        borderColor: "#a5b4fc",
+        borderWidth: 1,
+        titleFont: { family: "Prompt, sans-serif", size: 16 },
+        bodyFont: { family: "Prompt, sans-serif", size: 15 },
+        padding: 12,
+        cornerRadius: 8,
+      },
+    },
+    layout: {
+      padding: { left: 10, right: 10, top: 10, bottom: 10 },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+          font: { size: 16, family: "Prompt, sans-serif" },
+          color: "#22223b",
+        },
+        title: {
+          display: true,
+          text: "จำนวน (คัน)",
+          font: { size: 18, family: "Prompt, sans-serif" },
+          color: "#22223b",
+        },
+        grid: {
+          color: "rgba(59, 130, 246, 0.08)",
+          borderDash: [4, 4],
+        },
+      },
+      x: {
+        ticks: {
+          font: { size: 16, family: "Prompt, sans-serif" },
+          color: "#22223b",
+        },
+        title: {
+          display: true,
+          text: "ประเภทยานพาหนะ",
+          font: { size: 18, family: "Prompt, sans-serif" },
+          color: "#22223b",
+        },
+        grid: {
+          display: false,
+        },
+      },
+    },
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -169,8 +289,21 @@ export default function CameraReport() {
               </div>
             </div>
           </div>
+
+          {/* Vehicle Statistics Chart */}
+          <div className="bg-white/80 rounded-3xl shadow-2xl p-12 mt-14 border border-blue-100 max-w-5xl mx-auto w-full"
+            style={{
+              minHeight: 600,
+              backdropFilter: "blur(8px)",
+              boxShadow: "0 16px 56px 0 rgba(31, 38, 135, 0.22)",
+            }}
+          >
+            <div style={{ height: 480 }}>
+              <Bar data={chartData} options={chartOptions} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    );
+  );
 }
