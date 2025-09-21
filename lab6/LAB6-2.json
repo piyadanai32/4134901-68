@@ -1,0 +1,580 @@
+{
+  "name": "LAB6-2",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1fgcIwOa12OMoo1EfYPchYoBTKsADknHm",
+          "mode": "list",
+          "cachedResultName": "comment",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1fgcIwOa12OMoo1EfYPchYoBTKsADknHm"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5b8e27aa-9b5f-48ba-b82f-3e1a54aad379",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YD574r0Dt0UEbjzT",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "7d47ac23-0a8c-4711-8fe2-3d930df8f77b",
+      "name": "Google Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YD574r0Dt0UEbjzT",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "539d043b-a6fe-4ac8-b04f-ea577d56a266",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items\n  // กรอง row ที่มี comment ไม่ว่าง\n  .filter(item => item.json.comment && item.json.comment.trim() !== \"\")\n  .map(item => {\n    const row = item.json;\n\n    // แปลงวันที่ให้เป็น YYYY-MM-DD\n    const date = new Date(row.timestamp); // ใช้ timestamp จาก input\n    row.date = date.toISOString().split(\"T\")[0];\n\n    return { json: row };\n  });\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "b0c06bf1-752f-44db-ba55-d61aff018339",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=คุณคือระบบวิเคราะห์ความคิดเห็นลูกค้า\n- วิเคราะห์ Sentiment: positive, neutral, negative\n- หาหัวข้อ (Topic) เช่น: การบริการ, ราคา, คุณภาพสินค้า, การจัดส่ง\n\nลูกค้า: {{ $json.customer_id }}\nข้อความ: {{ $json.comment }}\nวันที่: {{ $json.date }}\n\nตอบกลับเป็น JSON:\n{\n  \"date\": \"{{ $json.date }}\",\n  \"user\": \"{{ $json.customer_id }}\",\n  \"feedback\": \"{{ $json.comment }}\",\n  \"sentiment\": \"...\",\n  \"topic\": \"...\"\n}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "093f1813-4665-4359-925d-0277fea8921a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4o-mini",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        768,
+        208
+      ],
+      "id": "d76a7af2-71b1-42e4-8b9d-fe1c4eb8037c",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "qqU39HPFnmzzJIqL",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const text = item.json.output;\n\n  // ดึงเฉพาะ JSON ระหว่าง ```json ... ```\n  const match = text.match(/```json([\\s\\S]*?)```/);\n\n  if (match) {\n    try {\n      const parsed = JSON.parse(match[1].trim());\n      return { json: parsed };\n    } catch (e) {\n      return { json: { error: \"Invalid JSON\", raw: text } };\n    }\n  }\n\n  // fallback กรณีไม่มี block ```json\n  try {\n    const parsed = JSON.parse(text.trim());\n    return { json: parsed };\n  } catch (e) {\n    return { json: { error: \"No JSON found\", raw: text } };\n  }\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        432
+      ],
+      "id": "45ebe14e-5997-480d-b324-75be6390287f",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  DATE(date) AS day, \n  sentiment, \n  COUNT(*) AS count \nFROM feedback_analysis \nWHERE DATE(date) >= CURDATE() - INTERVAL 7 DAY\nGROUP BY DATE(date), sentiment\nORDER BY day;\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        224,
+        560
+      ],
+      "id": "8a213d99-960e-42b9-b609-70fe97400c6d",
+      "name": "MySQL1",
+      "credentials": {
+        "mySql": {
+          "id": "wCjQtA2BEWqYmYC3",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT topic, COUNT(*) as count\nFROM feedback_analysis\nGROUP BY topic\nORDER BY count DESC\nLIMIT 10;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        224,
+        336
+      ],
+      "id": "098091be-f754-4718-8d32-5ea042cfd909",
+      "name": "MySQL2",
+      "credentials": {
+        "mySql": {
+          "id": "wCjQtA2BEWqYmYC3",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        736,
+        432
+      ],
+      "id": "600d2fa1-5134-4178-91d6-396a705af30c",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "name": "=feedback_sum_{{$now}}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1WuZDVtMWM6Kc4XeFIy_980QWDeGEYO4n",
+          "mode": "list",
+          "cachedResultName": "reports",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1WuZDVtMWM6Kc4XeFIy_980QWDeGEYO4n"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1056,
+        432
+      ],
+      "id": "5df176f6-7064-4121-bfe6-53906bc06f25",
+      "name": "Google Drive1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YD574r0Dt0UEbjzT",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        432
+      ],
+      "id": "d15f2c1d-0c84-4c60-b95c-0716ad45d80c",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// แปลง items เป็น array ของ row\nconst rows = items.map(item => item.json);\n\n// เอาวันที่มาเรียงไม่ให้ซ้ำ\nconst days = [...new Set(rows.map(r => r.day))];\n\n// sentiment categories\nconst sentiments = [\"positive\", \"neutral\", \"negative\"];\n\nconst datasets = sentiments.map(sent => ({\n  label: sent,\n  data: days.map(d => {\n    const found = rows.find(r => r.day === d && r.sentiment === sent);\n    return found ? found.count : 0;\n  }),\n  borderColor: sent === \"positive\" ? \"#22c55e\" : sent === \"neutral\" ? \"#6b7280\" : \"#ef4444\",\n  backgroundColor: sent === \"positive\" ? \"#86efac\" : sent === \"neutral\" ? \"#d1d5db\" : \"#fecaca\",\n  pointBackgroundColor: sent === \"positive\" ? \"#22c55e\" : sent === \"neutral\" ? \"#6b7280\" : \"#ef4444\",\n  borderWidth: 2,\n  tension: 0.3, // เส้นโค้งเล็กน้อยให้อ่านง่าย\n  fill: false\n}));\n\nreturn [\n  {\n    json: {\n      chartConfig: JSON.stringify({\n        type: \"line\",\n        data: { labels: days, datasets },\n        options: {\n          responsive: true,\n          maintainAspectRatio: false,\n          plugins: {\n            title: { display: true, text: \"แนวโน้ม Sentiment รายวัน\", font: { size: 16 } },\n            legend: { display: true, position: \"top\" }\n          },\n          scales: {\n            x: {\n              title: { display: true, text: \"วันที่\" }\n            },\n            y: {\n              beginAtZero: true,\n              title: { display: true, text: \"จำนวนความคิดเห็น\" }\n            }\n          }\n        }\n      })\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        560
+      ],
+      "id": "3cd99ddf-b9e8-42d3-abb3-b6628db0c32b",
+      "name": "Code4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://quickchart.io/chart/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chart\": {{ $json.chartConfig }},\n  \"backgroundColor\": \"white\",\n  \"width\": 800,\n  \"height\": 400,\n  \"format\": \"png\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        544,
+        560
+      ],
+      "id": "8ffe7e4c-4f0b-448f-a071-bb20289a69fc",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = items.map(i => i.json);\n\n// รวม count ตาม topic\nconst aggregated = rows.reduce((acc, row) => {\n  acc[row.topic] = (acc[row.topic] || 0) + row.count;\n  return acc;\n}, {});\n\n// แปลงกลับเป็น array\nconst labels = Object.keys(aggregated);\nconst data = Object.values(aggregated);\n\nreturn [\n  {\n    json: {\n      chartConfig: JSON.stringify({\n        type: \"bar\",\n        data: {\n          labels,\n          datasets: [{\n            label: \"จำนวนความคิดเห็น\",\n            data,\n            backgroundColor: \"rgba(54, 162, 235, 0.6)\",\n            borderColor: \"rgba(54, 162, 235, 1)\",\n            borderWidth: 1\n          }]\n        },\n        options: { // <-- scales ต้องอยู่ในนี้\n          indexAxis: \"y\",\n          plugins: {\n            title: {\n              display: true,\n              text: \"Top 10 Topics (ความคิดเห็นที่พบบ่อย)\"\n            }\n          },\n          scales: {\n            x: { // สำหรับกราฟแนวนอน (indexAxis: 'y') แกนตัวเลขคือแกน x\n              beginAtZero: true // ควรเริ่มที่ 0 เสมอสำหรับกราฟแท่ง\n            }\n          }\n        }\n      })\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        336
+      ],
+      "id": "41f48d91-4807-4a7b-98e0-5d5ad993c4b0",
+      "name": "Code5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://quickchart.io/chart/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chart\": {{ $json.chartConfig }},\n  \"backgroundColor\": \"white\",\n  \"width\": 800,\n  \"height\": 500,\n  \"format\": \"png\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        544,
+        336
+      ],
+      "id": "de5714fc-8ffc-4f79-a028-3f28356fe046",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "feedback_analysis",
+          "mode": "list",
+          "cachedResultName": "feedback_analysis"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "date",
+              "value": "={{ $json.date }}"
+            },
+            {
+              "column": "user",
+              "value": "={{ $json.user }}"
+            },
+            {
+              "column": "feedback",
+              "value": "={{ $json.feedback }}"
+            },
+            {
+              "column": "sentiment",
+              "value": "={{ $json.sentiment }}"
+            },
+            {
+              "column": "topic",
+              "value": "={{ $json.topic }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        48,
+        432
+      ],
+      "id": "1d416a25-9990-47a8-9126-0be69f68e0ea",
+      "name": "MySQL",
+      "credentials": {
+        "mySql": {
+          "id": "wCjQtA2BEWqYmYC3",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "650112418065@bru.ac.th",
+        "subject": "report",
+        "emailType": "text",
+        "message": "={{ $json.webViewLink }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1232,
+        480
+      ],
+      "id": "0298e080-beea-4159-b9ff-8592105b74d1",
+      "name": "Send a message",
+      "webhookId": "085542fc-6288-48b7-ab51-7e80896dc215",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "2lG6VUIEGhq4Rg1z",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "MySQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL1": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL2": {
+      "main": [
+        [
+          {
+            "node": "Code5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Google Drive1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code5": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL": {
+      "main": [
+        [
+          {
+            "node": "MySQL2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MySQL1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google Drive1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "dbed57d6-2d49-4310-91bf-67c9d584f0a0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2f8835c7026314b0bddc92024c930238aa3cfd1e077cc99971e49bba27cd25e3"
+  },
+  "id": "AQGtmy8ULTZheH45",
+  "tags": []
+}
