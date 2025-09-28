@@ -752,11 +752,15 @@ export default function VehicleDashboard() {
               boxShadow: "0 16px 56px 0 rgba(31, 38, 135, 0.22)",
             }}
           >
-            <div className="h-full flex flex-col"> {/* เพิ่ม wrapper div */}
+            <div className="h-full flex flex-col">
+              {" "}
+              {/* เพิ่ม wrapper div */}
               <h2 className="text-2xl font-bold text-blue-700 mb-6 text-center">
                 สถิติจำนวนยานพาหนะเข้าออก
               </h2>
-              <div className="flex-1" style={{ minHeight: 500 }}> {/* ปรับ container ของกราฟ */}
+              <div className="flex-1" style={{ minHeight: 500 }}>
+                {" "}
+                {/* ปรับ container ของกราฟ */}
                 <Bar data={chartData} options={chartOptions} />
               </div>
             </div>
