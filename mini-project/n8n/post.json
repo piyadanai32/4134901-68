@@ -4,13 +4,13 @@
       "parameters": {
         "jsCode": "// ตรวจสอบ input\nconst body = $json.body;\n\nif (!body || !body.vehicle_type || !body.direction || !body.count || !body.token || !body.camera_id) {\n  throw new Error('Invalid input - missing required fields');\n}\n\nreturn { \n  vehicle_type: body.vehicle_type,\n  direction: body.direction,\n  count: body.count,\n  token: body.token,\n  camera_id: body.camera_id\n};"
       },
-      "id": "aaa2edff-5f9b-484e-a67b-a959acbf1461",
+      "id": "255261b6-930c-423c-947f-01ef54094bfd",
       "name": "ตรวจสอบ Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -280,
-        1020
+        -384,
+        912
       ]
     },
     {
@@ -19,18 +19,18 @@
         "query": "SELECT id as vehicle_type_id FROM VehicleType WHERE name = '{{ $json.vehicle_type }}';",
         "options": {}
       },
-      "id": "e4a17967-7992-4ab8-95a6-2f3b9ef9b998",
+      "id": "dc66c7f0-fffe-4142-907e-bdb02131fec6",
       "name": "หา VehicleType",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
       "position": [
-        20,
-        740
+        -80,
+        624
       ],
       "credentials": {
         "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
         }
       }
     },
@@ -40,18 +40,18 @@
         "query": "SELECT id as direction_type_id FROM DirectionType WHERE name = '{{ $json.direction }}';",
         "options": {}
       },
-      "id": "d2775ab2-5d7e-4e05-adf7-459fe180c775",
+      "id": "1342fadd-dd26-4783-9375-68addb58dcff",
       "name": "หา DirectionType",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
       "position": [
-        20,
-        940
+        -80,
+        832
       ],
       "credentials": {
         "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
         }
       }
     },
@@ -61,18 +61,18 @@
         "query": "SELECT id as edge_device_id FROM EdgeDevice WHERE token = '{{ $json.token }}';",
         "options": {}
       },
-      "id": "03e5fea7-b62a-4284-ac95-4305b3e708da",
+      "id": "422ee2e2-2e01-44fd-97bd-4963331d0276",
       "name": "หา EdgeDevice",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
       "position": [
-        20,
-        1120
+        -80,
+        1008
       ],
       "credentials": {
         "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
         }
       }
     },
@@ -82,18 +82,18 @@
         "query": "SELECT id as camera_id FROM Camera WHERE id = {{ $json.camera_id }};",
         "options": {}
       },
-      "id": "5f73c85d-31a0-47b4-a4d0-98536bfd67db",
+      "id": "317d8bbd-8b96-4abd-96b3-3baee4d2613d",
       "name": "หา Camera",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
       "position": [
-        20,
-        1300
+        -80,
+        1184
       ],
       "credentials": {
         "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
         }
       }
     },
@@ -101,13 +101,13 @@
       "parameters": {
         "jsCode": "// รวมข้อมูลจากทุก node โดยใช้ชื่อ node\nconst originalData = $(\"ตรวจสอบ Input\").first().json; \nconst vehicleTypeData = $(\"หา VehicleType\").first().json; \nconst directionTypeData = $(\"หา DirectionType\").first().json; \nconst edgeDeviceData = $(\"หา EdgeDevice\").first().json;\nconst cameraData = $(\"หา Camera\").first().json;\n\n// ตรวจสอบข้อมูลพื้นฐาน\nif (!originalData) {\n  throw new Error('Missing original data from validate-input');\n}\n\n// ตรวจสอบข้อมูลแต่ละประเภท\nif (!vehicleTypeData || vehicleTypeData.length === 0) {\n  throw new Error(`Invalid vehicle type: ${originalData.vehicle_type}`);\n}\n\nif (!directionTypeData || directionTypeData.length === 0) {\n  throw new Error(`Invalid direction: ${originalData.direction}`);\n}\n\nif (!edgeDeviceData || edgeDeviceData.length === 0) {\n  throw new Error('Invalid or missing device token');\n}\n\nif (!cameraData || cameraData.length === 0) {\n  throw new Error(`Invalid camera_id: ${originalData.camera_id}`);\n}\n\n// ส่งข้อมูลที่ต้องการสำหรับ insert\nreturn {\n  edge_device_id: edgeDeviceData.edge_device_id,\n  camera_id: cameraData.camera_id,\n  vehicle_type_id: vehicleTypeData.vehicle_type_id,\n  direction_type_id: directionTypeData.direction_type_id,\n  count: originalData.count\n};"
       },
-      "id": "fa59ee7a-a661-4b43-83bf-d9bc379b7f19",
+      "id": "134366a9-526b-4b42-9440-7930ca3b514f",
       "name": "รวมข้อมูล",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        460,
-        1020
+        368,
+        912
       ]
     },
     {
@@ -116,18 +116,18 @@
         "query": "INSERT INTO DetectionRecord (edge_device_id, camera_id, vehicle_type_id, direction_type_id, count, time) VALUES ({{ $json.edge_device_id }}, {{ $json.camera_id }}, {{ $json.vehicle_type_id }}, {{ $json.direction_type_id }}, {{ $json.count }}, NOW());",
         "options": {}
       },
-      "id": "5a3f570e-24ab-418d-a7ed-a0d4cbeacf72",
+      "id": "75dd1774-ed72-4b44-a3cc-229d90d2faa2",
       "name": "บันทึกข้อมูล",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2,
       "position": [
-        640,
-        1020
+        544,
+        912
       ],
       "credentials": {
         "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
         }
       }
     },
@@ -138,13 +138,13 @@
           "responseCode": 200
         }
       },
-      "id": "f62cf432-aedb-40fb-ac28-0bdc6c6a3b00",
+      "id": "3473c4a0-ffd8-451c-a59a-e705cff3fd27",
       "name": "ส่งผลลัพธ์สำเร็จ",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        800,
-        1020
+        704,
+        912
       ]
     },
     {
@@ -154,13 +154,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "7b0e7549-1811-4c2b-aa5c-f22d8a741494",
+      "id": "de6c65df-1d8d-4f9f-9391-d1124f283af4",
       "name": "POST /vehicle_count1",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -500,
-        1020
+        -592,
+        912
       ],
       "webhookId": "3382a370-7878-4512-bd35-db9ecc909d87"
     },
@@ -171,10 +171,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        280,
-        1000
+        192,
+        880
       ],
-      "id": "fbc9fde5-1fcb-47f4-a52e-fd355a50e51d",
+      "id": "16912d4e-1506-45e2-975b-9506b51a8b63",
       "name": "Merge1"
     }
   ],
@@ -297,6 +297,6 @@
   "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "a839bafd58d79510da4d82085b815701590572d2080e9fbd737555bd0708cbb4"
+    "instanceId": "b88cc5fd85709ffe33d9b31950741e30a799267a90a4d7be0cc43021d42c8434"
   }
 }

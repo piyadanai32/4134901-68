@@ -4,13 +4,13 @@
       "parameters": {
         "jsCode": "// ดึงข้อมูลการเตรียมคำสั่งสอบถาม\nconst queryData = $('Prepare Gate Query').first().json;\nconst records = $input.all();\n\n// สร้างข้อมูลจัดกลุ่ม\nconst grouped = {};\nqueryData.cameraIds.forEach(cid => {\n  grouped[cid] = {\n    gate_id: queryData.gateId,\n    camera_id: cid,\n    start: queryData.start,\n    stop: queryData.stop,\n    details: {}\n  };\n  \n  // กำหนดค่าทั้งหมดเป็น 0\n  queryData.vehicleTypeIds.forEach(vtid => {\n    queryData.directionTypeIds.forEach(dtid => {\n      const key = `${vtid}-${dtid}`;\n      grouped[cid].details[key] = {\n        vehicle_type_id: vtid,\n        vehicle_type_name: queryData.vehicleTypeMap[vtid],\n        direction_type_id: dtid,\n        direction_type_name: queryData.directionTypeMap[dtid],\n        count: 0\n      };\n    });\n  });\n});\n\n// เติมข้อมูลจริงจากระเบียน\nrecords.forEach(record => {\n  const row = record.json;\n  const cid = row.camera_id;\n  const vtid = row.vehicle_type_id;\n  const dtid = row.direction_type_id;\n  const key = `${vtid}-${dtid}`;\n  \n  if (grouped[cid] && grouped[cid].details[key]) {\n    grouped[cid].details[key].count = parseInt(row.count);\n  }\n});\n\n// แปลงเป็นรูปแบบสุดท้าย\nconst data = [];\nObject.values(grouped).forEach(cam => {\n  cam.details = Object.values(cam.details);\n  data.push(cam);\n});\n\nreturn { data: data };"
       },
-      "id": "4ef68c66-295f-4ee1-9442-3acb93a96c3e",
+      "id": "70e040f0-575d-4344-bfa4-1c568147e704",
       "name": "Format Gate Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1380,
-        120
+        1296,
+        0
       ]
     },
     {
@@ -20,10 +20,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        120,
-        300
+        32,
+        192
       ],
-      "id": "8839f9f7-4198-4701-914a-239698079266",
+      "id": "a285510c-7fb3-4ad8-b1e0-c6482a9b3b41",
       "name": "Merge"
     },
     {
@@ -33,118 +33,49 @@
           "responseCode": 200
         }
       },
-      "id": "8f3d3ee4-760b-491a-9fbe-72c597dd821a",
+      "id": "45e28d32-1dfd-4b60-bb29-f9de84fb34cb",
       "name": "Respond to Client",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1600,
-        300
+        1504,
+        192
       ],
       "alwaysOutputData": false
     },
     {
       "parameters": {
-        "jsCode": "// ดึงข้อมูลพารามิเตอร์ (จาก Node ที่เตรียมข้อมูล)\nconst queryData = $('Prepare Camera Query').first().json;  // หรือใช้ชื่อ Node ที่ถูกต้องจริง\n\nconst records = $input.all();\n\n// สร้างรายละเอียดด้วยค่าทั้งหมด\nconst details = {};\nqueryData.vehicleTypeIds.forEach(vtid => {\n  queryData.directionTypeIds.forEach(dtid => {\n    const key = `${vtid}-${dtid}`;\n    details[key] = {\n      vehicle_type_id: vtid,\n      vehicle_type_name: queryData.vehicleTypeMap[vtid],\n      direction_type_id: dtid,\n      direction_type_name: queryData.directionTypeMap[dtid],\n      count: 0\n    };\n  });\n});\n\n// เติมข้อมูลจริงจากระเบียน\nrecords.forEach(record => {\n  const row = record.json;\n  const vtid = row.vehicle_type_id;\n  const dtid = row.direction_type_id;\n  const key = `${vtid}-${dtid}`;\n  \n  if (details[key]) {\n    details[key].count = parseInt(row.count);\n  }\n});\n\n// สร้างการตอบสนองสุดท้าย\nconst data = [{\n  gate_id: queryData.gateId,\n  camera_id: queryData.cameraId,\n  start: queryData.start,\n  stop: queryData.stop,\n  details: Object.values(details)\n}];\n\nreturn { data };\n"
-      },
-      "id": "56f5954d-7806-4117-b1a9-20631c9e70cb",
-      "name": "Format Camera Response",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1380,
-        460
-      ]
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
         "query": "={{ $json.sql }}",
         "options": {}
       },
-      "id": "6934065b-7cea-440e-9941-18396e4b2240",
-      "name": "Execute Camera Query",
-      "type": "n8n-nodes-base.mySql",
-      "typeVersion": 2.4,
-      "position": [
-        1140,
-        460
-      ],
-      "alwaysOutputData": true,
-      "credentials": {
-        "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "={{ $json.sql }}",
-        "options": {}
-      },
-      "id": "bf180fd3-bd4a-4dd8-91c3-55203cf5c410",
+      "id": "f1137f8f-52ad-44fe-a71f-ae2f3bebc686",
       "name": "Execute Gate Query",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        1140,
-        120
+        1056,
+        0
       ],
       "credentials": {
         "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "// ดึงข้อมูลจากโหนดก่อนหน้า\nconst params = $('Combine Types Data').first().json;\nconst gateData = $('Get Gate ID').first().json;\n\n// แปลงวันที่เป็น TIMESTAMP\nconst startDateTime = params.start + ' 00:00:00';\nconst stopDateTime = params.stop + ' 23:59:59';\n\n// สร้างคำสั่ง SQL สำหรับกล้อง\nconst sql = `SELECT vehicle_type_id, direction_type_id, SUM(count) as count\n             FROM DetectionRecord\n             WHERE camera_id = ${params.id} AND time BETWEEN '${startDateTime}' AND '${stopDateTime}'\n             GROUP BY vehicle_type_id, direction_type_id`;\n\nreturn {\n  sql,\n  vehicleTypeMap: params.vehicleTypeMap,\n  directionTypeMap: params.directionTypeMap,\n  vehicleTypeIds: params.vehicleTypeIds,\n  directionTypeIds: params.directionTypeIds,\n  cameraId: params.id,\n  gateId: gateData.gate_id,\n  start: params.start,\n  stop: params.stop\n};"
+        "jsCode": "// ดึงข้อมูลจากโหนดก่อนหน้า\nconst combinedData = $('รวมข้อมูลประเภท').first().json;\nconst cameras = $('Get Cameras in Gate').all();\n\n// ดึงรหัสกล้องทั้งหมดใน gate นั้น\nconst cameraIds = cameras.map(c => c.json.id);\n\n// ถ้าไม่พบกล้องใดเลย\nif (cameraIds.length === 0) {\n  return [{ json: { data: [] } }];\n}\n\n// เตรียมค่าเริ่มและสิ้นสุดเวลา\nconst start = combinedData.start + ' 00:00:00';\nconst stop = combinedData.stop + ' 23:59:59';\n\n// สร้างคำสั่ง SQL แบบแปะค่าลงไปตรง ๆ\nconst sql = `SELECT camera_id, vehicle_type_id, direction_type_id, SUM(count) as count\n             FROM DetectionRecord\n             WHERE camera_id IN (${cameraIds.join(',')}) AND time BETWEEN '${start}' AND '${stop}'\n             GROUP BY camera_id, vehicle_type_id, direction_type_id`;\n\n// ส่งข้อมูลที่ต้องใช้ต่อไปยัง Node ถัดไป\nreturn {\n  sql: sql,\n  vehicleTypeMap: combinedData.vehicleTypeMap,\n  directionTypeMap: combinedData.directionTypeMap,\n  vehicleTypeIds: combinedData.vehicleTypeIds,\n  directionTypeIds: combinedData.directionTypeIds,\n  cameraIds: cameraIds,\n  gateId: combinedData.id,\n  start: combinedData.start,\n  stop: combinedData.stop\n};\n"
       },
-      "id": "2fb22691-d1c6-4333-a6a4-47dcb06a517a",
-      "name": "Prepare Camera Query",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        940,
-        460
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// ดึงข้อมูลจากโหนดก่อนหน้า\nconst combinedData = $('Combine Types Data').first().json;\nconst cameras = $('Get Cameras in Gate').all();\n\n// ดึงรหัสกล้องทั้งหมดใน gate นั้น\nconst cameraIds = cameras.map(c => c.json.id);\n\n// ถ้าไม่พบกล้องใดเลย\nif (cameraIds.length === 0) {\n  return [{ json: { data: [] } }];\n}\n\n// เตรียมค่าเริ่มและสิ้นสุดเวลา\nconst start = combinedData.start + ' 00:00:00';\nconst stop = combinedData.stop + ' 23:59:59';\n\n// สร้างคำสั่ง SQL แบบแปะค่าลงไปตรง ๆ\nconst sql = `SELECT camera_id, vehicle_type_id, direction_type_id, SUM(count) as count\n             FROM DetectionRecord\n             WHERE camera_id IN (${cameraIds.join(',')}) AND time BETWEEN '${start}' AND '${stop}'\n             GROUP BY camera_id, vehicle_type_id, direction_type_id`;\n\n// ส่งข้อมูลที่ต้องใช้ต่อไปยัง Node ถัดไป\nreturn {\n  sql: sql,\n  vehicleTypeMap: combinedData.vehicleTypeMap,\n  directionTypeMap: combinedData.directionTypeMap,\n  vehicleTypeIds: combinedData.vehicleTypeIds,\n  directionTypeIds: combinedData.directionTypeIds,\n  cameraIds: cameraIds,\n  gateId: combinedData.id,\n  start: combinedData.start,\n  stop: combinedData.stop\n};\n"
-      },
-      "id": "330fa4aa-0dd7-4457-a460-2694c3ff8652",
+      "id": "2ce1d6e1-21bf-4d67-89c1-064a37ee29b0",
       "name": "Prepare Gate Query",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        940,
-        120
+        848,
+        0
       ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT gate_id FROM Camera WHERE id = {{ $json.id }};",
-        "options": {}
-      },
-      "id": "b70f5551-c78c-4c84-b3c3-7083cbd6e3c0",
-      "name": "Get Gate ID",
-      "type": "n8n-nodes-base.mySql",
-      "typeVersion": 2.4,
-      "position": [
-        720,
-        460
-      ],
-      "credentials": {
-        "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
-        }
-      }
     },
     {
       "parameters": {
@@ -152,18 +83,18 @@
         "query": "SELECT id FROM Camera WHERE gate_id = {{ $json.id }};",
         "options": {}
       },
-      "id": "361a94b4-fdb2-4b92-95de-a3d64a67ead7",
+      "id": "75665f96-5e0e-44bf-b7d2-3b1c1b084d03",
       "name": "Get Cameras in Gate",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        720,
-        120
+        624,
+        0
       ],
       "credentials": {
         "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
         }
       }
     },
@@ -191,26 +122,13 @@
         },
         "options": {}
       },
-      "id": "0086ac44-0830-40dc-9da7-6cd323a7cb94",
+      "id": "b09b1dc2-3de0-45e9-94aa-4756dd972f84",
       "name": "Check Type",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        520,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// รับข้อมูล input หลัก\nconst inputData = $input.first();\nconst inputJson = inputData?.json ?? {};\n\n// เตรียม Map\nconst vehicleTypeMap = {};\nconst vehicleTypeIds = [];\nconst directionTypeMap = {};\nconst directionTypeIds = [];\n\n// รับ VehicleTypes\nif ($('Get VehicleTypes')) {\n  $('Get VehicleTypes').all().forEach(vt => {\n    if (!(vt.json.id in vehicleTypeMap)) {\n      vehicleTypeMap[vt.json.id] = vt.json.name;\n      vehicleTypeIds.push(vt.json.id);\n    }\n  });\n}\n\n// รับ DirectionTypes\nif ($('Get DirectionTypes')) {\n  $('Get DirectionTypes').all().forEach(dt => {\n    if (!(dt.json.id in directionTypeMap)) {\n      directionTypeMap[dt.json.id] = dt.json.name;\n      directionTypeIds.push(dt.json.id);\n    }\n  });\n}\n\n// คืนค่าครบ\nreturn {\n  ...inputJson,\n  vehicleTypeMap,\n  directionTypeMap,\n  vehicleTypeIds,\n  directionTypeIds,\n};\n"
-      },
-      "id": "1901eec3-b462-42c2-ae1a-636aa734e64d",
-      "name": "Combine Types Data",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        320,
-        300
+        432,
+        192
       ]
     },
     {
@@ -219,18 +137,18 @@
         "query": "SELECT id, name FROM DirectionType;",
         "options": {}
       },
-      "id": "0238b73f-25cd-4490-9190-19a3f3837c5b",
+      "id": "2aacbfcc-eb44-40d7-94df-f5cfb82ca77b",
       "name": "Get DirectionTypes",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        -80,
-        440
+        -176,
+        320
       ],
       "credentials": {
         "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
         }
       }
     },
@@ -240,19 +158,19 @@
         "query": "SELECT id, name FROM VehicleType;",
         "options": {}
       },
-      "id": "eca4b209-f692-4922-b399-82bfab9bdfb9",
+      "id": "2e77cc82-bdfe-43cf-bc06-a44affd91d64",
       "name": "Get VehicleTypes",
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        -80,
-        120
+        -176,
+        0
       ],
       "alwaysOutputData": false,
       "credentials": {
         "mySql": {
-          "id": "okohZFqM4p0R1Z4O",
-          "name": "MySQL account"
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
         }
       }
     },
@@ -260,13 +178,13 @@
       "parameters": {
         "jsCode": "// แยกพารามิเตอร์จาก URL\nconst uri = $input.first().json.params.path;\nconst fullUrl = $input.first().json.headers.referer || $input.first().json.query;\n\n// ดึงค่าพารามิเตอร์จาก query string\nconst queryParams = $input.first().json.query;\nconst type = queryParams.type; // 'gate' หรือ 'camera'\nconst id = parseInt(queryParams.id);\nconst start = queryParams.start;\nconst stop = queryParams.stop;\n\n// ตรวจสอบความถูกต้องของพารามิเตอร์\nif (!type || !id || !start || !stop) {\n  throw new Error('พารามิเตอร์ไม่ถูกต้อง ต้องระบุ: type, id, start, stop');\n}\n\nif (type !== 'gate' && type !== 'camera') {\n  throw new Error('type ต้องเป็น \"gate\" หรือ \"camera\" เท่านั้น');\n}\nif (!['gate', 'camera'].includes(type)) {\n  throw new Error('type ต้องเป็น \"gate\" หรือ \"camera\" เท่านั้น');\n}\nif (isNaN(id)) {\n  throw new Error('id ต้องเป็นตัวเลข');\n}\n\nreturn {\n  type: type,\n  id: id,\n  start: start + ' 00:00:00',\n  stop: stop + ' 23:59:59',\n};"
       },
-      "id": "89744240-563c-42bc-9075-cc3e66c001d1",
+      "id": "b9d72247-71e0-403c-8c30-cb570758d237",
       "name": "แยกพารามิเตอร์",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -280,
-        280
+        -384,
+        160
       ]
     },
     {
@@ -275,15 +193,97 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "2a083d03-6b78-450d-b9ff-6189b89331cc",
+      "id": "b5776085-4cbe-4747-980a-152ea79a619e",
       "name": "รับคำขอจาก Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -500,
-        280
+        -592,
+        160
       ],
       "webhookId": "vehicle-count-all"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ดึงข้อมูลจากโหนดก่อนหน้า\nconst params = $('รวมข้อมูลประเภท').first().json;\nconst gateData = $('Get Camera ID').first().json;\n\n// แปลงวันที่เป็น TIMESTAMP\nconst startDateTime = params.start + ' 00:00:00';\nconst stopDateTime = params.stop + ' 23:59:59';\n\n// สร้างคำสั่ง SQL สำหรับกล้อง\nconst sql = `SELECT vehicle_type_id, direction_type_id, SUM(count) as count\n             FROM DetectionRecord\n             WHERE camera_id = ${params.id} AND time BETWEEN '${startDateTime}' AND '${stopDateTime}'\n             GROUP BY vehicle_type_id, direction_type_id`;\n\nreturn {\n  sql,\n  vehicleTypeMap: params.vehicleTypeMap,\n  directionTypeMap: params.directionTypeMap,\n  vehicleTypeIds: params.vehicleTypeIds,\n  directionTypeIds: params.directionTypeIds,\n  cameraId: params.id,\n  gateId: gateData.gate_id,\n  start: params.start,\n  stop: params.stop\n};"
+      },
+      "id": "6388b26f-fb4b-44b8-9c36-097b2b559c48",
+      "name": "Prepare Camera Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql }}",
+        "options": {}
+      },
+      "id": "b836f22a-339c-436e-ba90-7fb612791bd9",
+      "name": "Execute Camera Query",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1056,
+        352
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ดึงข้อมูลพารามิเตอร์ (จาก Node ที่เตรียมข้อมูล)\nconst queryData = $('Prepare Camera Query').first().json;  // หรือใช้ชื่อ Node ที่ถูกต้องจริง\n\nconst records = $input.all();\n\n// สร้างรายละเอียดด้วยค่าทั้งหมด\nconst details = {};\nqueryData.vehicleTypeIds.forEach(vtid => {\n  queryData.directionTypeIds.forEach(dtid => {\n    const key = `${vtid}-${dtid}`;\n    details[key] = {\n      vehicle_type_id: vtid,\n      vehicle_type_name: queryData.vehicleTypeMap[vtid],\n      direction_type_id: dtid,\n      direction_type_name: queryData.directionTypeMap[dtid],\n      count: 0\n    };\n  });\n});\n\n// เติมข้อมูลจริงจากระเบียน\nrecords.forEach(record => {\n  const row = record.json;\n  const vtid = row.vehicle_type_id;\n  const dtid = row.direction_type_id;\n  const key = `${vtid}-${dtid}`;\n  \n  if (details[key]) {\n    details[key].count = parseInt(row.count);\n  }\n});\n\n// สร้างการตอบสนองสุดท้าย\nconst data = [{\n  gate_id: queryData.gateId,\n  camera_id: queryData.cameraId,\n  start: queryData.start,\n  stop: queryData.stop,\n  details: Object.values(details)\n}];\n\nreturn { data };\n"
+      },
+      "id": "2cb50b86-b1a9-45d0-8e1c-c3294a1ca1ff",
+      "name": "Format Camera Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// รับข้อมูล input หลัก\nconst inputData = $input.first();\nconst inputJson = inputData?.json ?? {};\n\n// เตรียม Map\nconst vehicleTypeMap = {};\nconst vehicleTypeIds = [];\nconst directionTypeMap = {};\nconst directionTypeIds = [];\n\n// รับ VehicleTypes\nif ($('Get VehicleTypes')) {\n  $('Get VehicleTypes').all().forEach(vt => {\n    if (!(vt.json.id in vehicleTypeMap)) {\n      vehicleTypeMap[vt.json.id] = vt.json.name;\n      vehicleTypeIds.push(vt.json.id);\n    }\n  });\n}\n\n// รับ DirectionTypes\nif ($('Get DirectionTypes')) {\n  $('Get DirectionTypes').all().forEach(dt => {\n    if (!(dt.json.id in directionTypeMap)) {\n      directionTypeMap[dt.json.id] = dt.json.name;\n      directionTypeIds.push(dt.json.id);\n    }\n  });\n}\n\n// คืนค่าครบ\nreturn {\n  ...inputJson,\n  vehicleTypeMap,\n  directionTypeMap,\n  vehicleTypeIds,\n  directionTypeIds,\n};\n"
+      },
+      "id": "293a944b-c9dc-4410-b372-021e22987e26",
+      "name": "รวมข้อมูลประเภท",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT gate_id FROM Camera WHERE id = {{ $json.id }};",
+        "options": {}
+      },
+      "id": "f8d6a54c-3a30-4411-8b31-fc62e4e10259",
+      "name": "Get Camera ID",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        624,
+        352
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "ZIBHThjC92iWkMch",
+          "name": "MySQL"
+        }
+      }
     }
   ],
   "connections": {
@@ -302,29 +302,7 @@
       "main": [
         [
           {
-            "node": "Combine Types Data",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Camera Response": {
-      "main": [
-        [
-          {
-            "node": "Respond to Client",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Camera Query": {
-      "main": [
-        [
-          {
-            "node": "Format Camera Response",
+            "node": "รวมข้อมูลประเภท",
             "type": "main",
             "index": 0
           }
@@ -342,33 +320,11 @@
         ]
       ]
     },
-    "Prepare Camera Query": {
-      "main": [
-        [
-          {
-            "node": "Execute Camera Query",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Prepare Gate Query": {
       "main": [
         [
           {
             "node": "Execute Gate Query",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Gate ID": {
-      "main": [
-        [
-          {
-            "node": "Prepare Camera Query",
             "type": "main",
             "index": 0
           }
@@ -397,18 +353,7 @@
         ],
         [
           {
-            "node": "Get Gate ID",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Combine Types Data": {
-      "main": [
-        [
-          {
-            "node": "Check Type",
+            "node": "Get Camera ID",
             "type": "main",
             "index": 0
           }
@@ -468,11 +413,66 @@
           }
         ]
       ]
+    },
+    "Prepare Camera Query": {
+      "main": [
+        [
+          {
+            "node": "Execute Camera Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Camera Query": {
+      "main": [
+        [
+          {
+            "node": "Format Camera Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Camera Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "รวมข้อมูลประเภท": {
+      "main": [
+        [
+          {
+            "node": "Check Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Camera ID": {
+      "main": [
+        [
+          {
+            "node": "Prepare Camera Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "a839bafd58d79510da4d82085b815701590572d2080e9fbd737555bd0708cbb4"
+    "instanceId": "b88cc5fd85709ffe33d9b31950741e30a799267a90a4d7be0cc43021d42c8434"
   }
 }
